@@ -1,0 +1,197 @@
+// Insurance Lead Engine — data model (MVP)
+//
+// Uses SQLite for zero-config local dev. To deploy on PostgreSQL (per the
+// blueprint), change `provider` to "postgresql" and point DATABASE_URL at your
+// instance. List/JSON-ish fields are stored as strings for cross-provider
+// portability and parsed in src/lib.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Identity & org
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String   @id @default(cuid())
+  role         String   @default("agent") // consumer | agent | agency_owner | admin | marketing
+  firstName    String
+  lastName     String
+  email        String   @unique
+  phone        String?
+  passwordHash String?
+  status       String   @default("active")
+  createdAt    DateTime @default(now())
+
+  agent Agent?
+}
+
+model Agency {
+  id              String   @id @default(cuid())
+  name            String
+  licenseStates   String   @default("") // CSV of state codes, e.g. "MA,NH,RI"
+  productsEnabled String   @default("") // CSV of product slugs
+  phone           String?
+  email           String?
+  address         String?
+  website         String?
+  status          String   @default("active")
+  createdAt       DateTime @default(now())
+
+  agents    Agent[]
+  leads     Lead[]
+  consents  ConsentRecord[]
+}
+
+model Agent {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  agencyId        String
+  licenseStates   String   @default("") // CSV
+  productsEnabled String   @default("") // CSV
+  languages       String   @default("en") // CSV
+  capacityPerDay  Int      @default(25)
+  routingWeight   Int      @default(1)
+  status          String   @default("active") // active | paused
+  createdAt       DateTime @default(now())
+
+  user         User           @relation(fields: [userId], references: [id])
+  agency       Agency         @relation(fields: [agencyId], references: [id])
+  leads        Lead[]
+  activities   ActivityLog[]
+  tasks        Task[]
+}
+
+// ---------------------------------------------------------------------------
+// Leads
+// ---------------------------------------------------------------------------
+
+model Lead {
+  id              String   @id @default(cuid())
+  productType     String   // auto | home | life | commercial | renters | ...
+  firstName       String
+  lastName        String
+  email           String
+  phone           String
+  state           String
+  zip             String?
+  details         String   @default("{}") // JSON string of product-specific answers
+  leadScore       Int      @default(0)
+  scoreBreakdown  String   @default("{}") // JSON string of factor -> points
+  temperature     String   @default("cold") // hot | warm | cold
+  leadStatus      String   @default("new") // pipeline stage
+  exclusive       Boolean  @default(true)
+  duplicateOf     String?  // lead id if flagged duplicate
+  assignedAgentId String?
+  agencyId        String?
+  campaignId      String?
+  sourceId        String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  assignedAgent Agent?         @relation(fields: [assignedAgentId], references: [id])
+  agency        Agency?        @relation(fields: [agencyId], references: [id])
+  campaign      Campaign?      @relation(fields: [campaignId], references: [id])
+  consent       ConsentRecord?
+  activities    ActivityLog[]
+  tasks         Task[]
+  outcome       QuoteOutcome?
+}
+
+model ConsentRecord {
+  id                  String   @id @default(cuid())
+  leadId              String   @unique
+  agencyId            String?
+  agencyName          String   // specific seller/agency named in disclosure (1:1 consent)
+  consentText         String
+  tcpaConsent         Boolean  @default(false)
+  smsConsent          Boolean  @default(false)
+  emailConsent        Boolean  @default(false)
+  phoneConsent        Boolean  @default(false)
+  tcpaVersion         String   @default("v1")
+  privacyPolicyVersion String  @default("v1")
+  termsVersion        String   @default("v1")
+  ipAddress           String?
+  userAgent           String?
+  landingPageUrl      String?
+  campaignSource      String?
+  createdAt           DateTime @default(now())
+
+  lead   Lead    @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  agency Agency? @relation(fields: [agencyId], references: [id])
+}
+
+model Campaign {
+  id          String   @id @default(cuid())
+  name        String
+  channel     String?  // search | social | email | referral
+  source      String?
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  budget      Float?
+  costPerLead Float?
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+
+  leads Lead[]
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  leadId    String
+  agentId   String?
+  type      String   // call | sms | email | note | status_change | assignment | system
+  notes     String?
+  createdAt DateTime @default(now())
+
+  lead  Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  agent Agent? @relation(fields: [agentId], references: [id])
+}
+
+model Task {
+  id        String    @id @default(cuid())
+  leadId    String
+  agentId   String?
+  title     String
+  type      String    @default("follow_up") // call | send_quote | follow_up | renewal | missing_info
+  dueAt     DateTime?
+  status    String    @default("open") // open | done | cancelled
+  createdAt DateTime  @default(now())
+
+  lead  Lead   @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  agent Agent? @relation(fields: [agentId], references: [id])
+}
+
+model QuoteOutcome {
+  id                 String    @id @default(cuid())
+  leadId             String    @unique
+  quotedPremium      Float?
+  carrier            String?
+  policyType         String?
+  bound              Boolean   @default(false)
+  boundDate          DateTime?
+  estimatedCommission Float?
+  lostReason         String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+}
+
+// Suppression list for CAN-SPAM / STOP handling.
+model Suppression {
+  id        String   @id @default(cuid())
+  channel   String   // email | sms | phone
+  value     String   // normalized email or phone
+  reason    String   @default("opt_out")
+  createdAt DateTime @default(now())
+
+  @@unique([channel, value])
+}
