@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
+// Querying the DB at request time — never prerender at build.
+export const dynamic = "force-dynamic";
+
 // GET /api/leads/export — CSV export of all leads (MVP requirement).
 export async function GET() {
   const leads = await prisma.lead.findMany({
