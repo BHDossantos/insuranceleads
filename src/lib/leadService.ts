@@ -6,6 +6,7 @@ import { prisma } from "./db";
 import { scoreLead } from "./scoring";
 import { routeLead } from "./routing";
 import { getProduct } from "./products";
+import { notifyOnNewLead } from "./notifications";
 import { normalizeEmail, normalizePhone, isValidEmail, isValidPhone } from "./util";
 
 export const consentSchema = z.object({
@@ -152,6 +153,22 @@ export async function createLead(input: LeadInput, ctx: IntakeContext = {}): Pro
         isDuplicate ? " Flagged as possible duplicate." : ""
       }`,
     },
+  });
+
+  // Consumer confirmation + agent alert (suppression- and consent-aware).
+  const assignedAgent = routing.agentId
+    ? await prisma.agent.findUnique({ where: { id: routing.agentId }, select: { userId: true } })
+    : null;
+  await notifyOnNewLead({
+    leadId: lead.id,
+    firstName: lead.firstName,
+    email: lead.email,
+    phone: lead.phone,
+    productType: lead.productType,
+    agencyName: input.consent.agencyName,
+    emailConsent: input.consent.emailConsent,
+    smsConsent: input.consent.smsConsent,
+    agentUserId: assignedAgent?.userId ?? null,
   });
 
   return {
