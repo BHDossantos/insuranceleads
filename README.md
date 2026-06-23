@@ -103,6 +103,15 @@ products) are CSV strings for cross-database portability.
 2. Set `DATABASE_URL` to your `postgres://…` connection string.
 3. `npm run db:push && npm run db:seed`.
 
+## Security notes
+
+- **postcss** is forced to a patched `^8.5.10` via the `overrides` field in
+  `package.json` (Next 14 otherwise pins a vulnerable 8.4.x transitively).
+- **Next.js** is pinned to `14.2.35` (latest patched 14.x). Some framework-level
+  advisories are only fixed in Next 16, which is a major breaking change
+  (React 19, App Router/API changes). For this MVP we knowingly stay on 14.2.35
+  and defer that upgrade; revisit before production.
+
 ## Scope notes
 
 Implemented (MVP): consumer landing + multi-product quote forms, consent capture,
