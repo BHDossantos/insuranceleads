@@ -16,18 +16,23 @@ export function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
+// Canonicalize to a 10-digit US number: strip non-digits and a leading country
+// code "1". This keeps lead intake, the suppression list, and the inbound SMS
+// webhook keyed identically regardless of input format (e.g. "+1 (617)…" vs
+// "617…") so opt-outs reliably match.
 export function normalizePhone(phone: string): string {
-  return phone.replace(/[^\d]/g, "");
+  const digits = phone.replace(/[^\d]/g, "");
+  if (digits.length === 11 && digits.startsWith("1")) return digits.slice(1);
+  return digits;
 }
 
 export function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
 
-// US phone: 10 digits, or 11 starting with 1.
+// Valid once canonicalized to exactly 10 US digits.
 export function isValidPhone(phone: string): boolean {
-  const d = normalizePhone(phone);
-  return d.length === 10 || (d.length === 11 && d.startsWith("1"));
+  return normalizePhone(phone).length === 10;
 }
 
 export function safeJson<T>(value: string | null | undefined, fallback: T): T {

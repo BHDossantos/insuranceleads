@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    ignore:
+      # Staying on the Next 14.x line for this MVP; a Next 16 major upgrade
+      # (React 19, App Router/API changes) is a deliberate, separate decision.
+      - dependency-name: next
+        update-types: ["version-update:semver-major"]
+      # postcss is intentionally pinned via the "overrides" field in
+      # package.json (to clear a security advisory while staying on Next 14).
+      # Dependabot cannot update it without conflicting with that override,
+      # so exclude it from automated updates.
+      - dependency-name: postcss
