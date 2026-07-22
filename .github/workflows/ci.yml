@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "claude/**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    name: Type-check & build
+    runs-on: ubuntu-latest
+    env:
+      # SQLite file URL; build does not need a live database but Prisma reads it.
+      DATABASE_URL: "file:./dev.db"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Build (includes TypeScript type-check)
+        run: npm run build
