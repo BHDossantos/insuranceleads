@@ -43,6 +43,7 @@ Useful scripts:
 | `npm run db:push` | Sync schema to the database |
 | `npm run db:seed` | Load demo agencies, agents, campaigns, leads |
 | `npm run db:reset` | Wipe + reseed |
+| `npm test` | Run the unit test suite (Vitest) |
 
 ## How the core pipeline works
 
@@ -69,9 +70,15 @@ When a quote request is submitted (`POST /api/leads` → `src/lib/leadService.ts
   channel permissions (SMS/email/phone), timestamp, IP, user agent, landing page
   URL, and policy versions are stored per lead in `ConsentRecord`.
 - **Suppression list / opt-outs**: setting a lead to `do_not_contact` adds its
-  email + phone to the `Suppression` table (CAN-SPAM / STOP handling foundation).
+  email + phone to the `Suppression` table, and the inbound SMS webhook
+  (`/api/webhooks/twilio/sms`) honors **STOP/START/HELP** keywords (CAN-SPAM /
+  CTIA STOP handling). Phone numbers are canonicalized to 10 digits everywhere
+  so opt-outs reliably match lead records.
 - **Audit trail**: every status change, assignment, and contact attempt is
   written to `ActivityLog`.
+- The notification service (`src/lib/notifications.ts`) checks the suppression
+  list and per-channel consent before sending consumer confirmations or agent
+  alerts.
 
 ## API
 
@@ -89,6 +96,7 @@ When a quote request is submitted (`POST /api/leads` → `src/lib/leadService.ts
 | GET | `/api/consents/:leadId` | Retrieve stored consent record |
 | GET | `/api/agents` | List agents |
 | GET | `/api/reports/dashboard` | Aggregated admin metrics |
+| POST | `/api/webhooks/twilio/sms` | Inbound SMS: honor STOP/START/HELP against the suppression list, reply with TwiML |
 
 ## Data model
 

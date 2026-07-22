@@ -1,0 +1,12 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    ignore:
+      # Staying on the Next 14.x line for this MVP; a Next 16 major upgrade
+      # (React 19, App Router/API changes) is a deliberate, separate decision.
+      - dependency-name: next
+        update-types: ["version-update:semver-major"]
