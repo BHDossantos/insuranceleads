@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { buildDashboardReport } from "@/lib/reports";
 import { PRODUCT_BY_SLUG } from "@/lib/products";
 import { StatusBadge } from "@/components/badges";
@@ -23,7 +24,11 @@ export default async function AdminDashboard() {
           <h1 className="text-2xl font-bold">Admin dashboard</h1>
           <p className="text-sm text-slate-600">Lead quality, ROI, compliance & agent performance.</p>
         </div>
-        <a href="/api/leads/export" className="btn-secondary">Export leads CSV</a>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/admin/agents" className="btn-secondary">Agents &amp; routing</Link>
+          <Link href="/admin/campaigns" className="btn-secondary">Campaigns</Link>
+          <a href="/api/leads/export" className="btn-secondary">Export leads CSV</a>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
