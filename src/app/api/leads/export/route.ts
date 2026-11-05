@@ -1,3 +1,4 @@
+import { requireOperator } from "@/lib/operatorAccess";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
@@ -5,7 +6,9 @@ import { prisma } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 // GET /api/leads/export — CSV export of all leads (MVP requirement).
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = requireOperator(req);
+  if (denied) return denied;
   const leads = await prisma.lead.findMany({
     orderBy: { createdAt: "desc" },
     include: { assignedAgent: { include: { user: true } }, agency: true },

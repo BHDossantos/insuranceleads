@@ -120,6 +120,50 @@ products) are CSV strings for cross-database portability.
 
 ## Security notes
 
+### Internal operator boundary (not multi-agent launch authentication)
+
+Private API routes and every admin/agent server-rendered page now check a
+server-side operator credential before reading or mutating data. They fail
+closed with no configured credential; there is no demo bypass. This is a
+**single trusted operator pilot**, whose operator can access all leads. Do not
+give this credential to agents, agencies or customers. Individual identities,
+revocable sessions, assignment/agency-scoped authorization and audited actor
+attribution are still required before a multi-agent rollout.
+
+For an approved internal deployment, configure `INSURANCE_OPERATOR_PASSWORD`
+(at least 32 characters, randomly generated and kept in a secret manager) and
+`INSURANCE_APP_ORIGIN` (exact HTTPS origin, no trailing slash). No credentials
+are created by the app or this change. Unconfigured private APIs return 503;
+invalid authentication returns 401; private pages show 404 without querying
+data. Only non-production loopback origins can use HTTP. Ensure the hosting
+edge redirects HTTP to HTTPS and applies request throttling before enabling
+access. Configuration/deployment must be separately approved.
+
+Use **Operator sign-in** (HTTP Basic username `operator`) to enter the console.
+The password is verified server-side and never put in frontend configuration,
+URLs, logs or the database. Browsers cache HTTP Basic authentication: there is
+no reliable per-tab logout or individual session revocation. Use an isolated
+browser profile and close it after use; rotating the password revokes the old
+credential. This limitation is why the boundary is not a customer identity
+system. API writes require an `Origin` matching `INSURANCE_APP_ORIGIN`, even
+for scripts, to prevent cross-site writes using cached browser credentials.
+
+Checks are inside handlers and server pages, not only middleware/layouts.
+Protected GET routes are dynamic to prevent cached private data. The public
+`POST /api/leads` remains public intake, with existing validation; production
+abuse controls and durable notification delivery remain separate gates.
+
+**The unsigned Twilio SMS endpoint is closed (503).** Previously a forged
+START request could delete suppression. It cannot process STOP/START while
+closed, so do not connect a live sender to it or claim working automated
+opt-out handling. Before enabling SMS, implement provider signature validation
+bound to the canonical webhook URL, durable event deduplication and reviewed
+opt-in handling, then prove STOP is processed reliably. No unrelated outreach
+sender or live provider setting is modified by this code change.
+
+The isolated review branch is excluded from Vercel Git deployments. Existing
+production deployment settings, credentials and data are unchanged.
+
 - **postcss** is forced to a patched `^8.5.10` via the `overrides` field in
   `package.json` (Next 14 otherwise pins a vulnerable 8.4.x transitively).
 - **Next.js** is pinned to `14.2.35` (latest patched 14.x). Some framework-level

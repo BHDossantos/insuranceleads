@@ -1,3 +1,4 @@
+import { requireOperatorPage } from "@/lib/operatorPage";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { csvToList } from "@/lib/util";
@@ -8,6 +9,7 @@ import AgentsManager from "./AgentsManager";
 export const dynamic = "force-dynamic";
 
 export default async function AdminAgentsPage() {
+  requireOperatorPage();
   const [agents, agencies] = await Promise.all([
     prisma.agent.findMany({
       include: { user: true, agency: true, _count: { select: { leads: true } } },

@@ -1,3 +1,4 @@
+import { requireOperator } from "@/lib/operatorAccess";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createAgent } from "@/lib/adminService";
@@ -6,7 +7,9 @@ import { createAgent } from "@/lib/adminService";
 export const dynamic = "force-dynamic";
 
 // GET /api/agents — list agents with their agency + lead counts.
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = requireOperator(req);
+  if (denied) return denied;
   const agents = await prisma.agent.findMany({
     include: {
       user: true,
@@ -20,6 +23,8 @@ export async function GET() {
 
 // POST /api/agents — create an agent (and its backing user).
 export async function POST(req: NextRequest) {
+  const denied = requireOperator(req);
+  if (denied) return denied;
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   try {

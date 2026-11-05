@@ -1,3 +1,4 @@
+import { requireOperatorPage } from "@/lib/operatorPage";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
@@ -9,6 +10,7 @@ import LeadActions from "./LeadActions";
 export const dynamic = "force-dynamic";
 
 export default async function LeadDetailPage({ params }: { params: { id: string } }) {
+  requireOperatorPage();
   const lead = await prisma.lead.findUnique({
     where: { id: params.id },
     include: {

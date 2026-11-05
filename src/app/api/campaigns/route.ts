@@ -1,3 +1,4 @@
+import { requireOperator } from "@/lib/operatorAccess";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createCampaign } from "@/lib/adminService";
@@ -5,7 +6,9 @@ import { createCampaign } from "@/lib/adminService";
 export const dynamic = "force-dynamic";
 
 // GET /api/campaigns — list campaigns with lead counts.
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = requireOperator(req);
+  if (denied) return denied;
   const campaigns = await prisma.campaign.findMany({
     include: { _count: { select: { leads: true } } },
     orderBy: { createdAt: "desc" },
@@ -15,6 +18,8 @@ export async function GET() {
 
 // POST /api/campaigns — create a campaign.
 export async function POST(req: NextRequest) {
+  const denied = requireOperator(req);
+  if (denied) return denied;
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   try {

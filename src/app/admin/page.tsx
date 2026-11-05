@@ -1,3 +1,4 @@
+import { requireOperatorPage } from "@/lib/operatorPage";
 import Link from "next/link";
 import { buildDashboardReport } from "@/lib/reports";
 import { PRODUCT_BY_SLUG } from "@/lib/products";
@@ -15,6 +16,7 @@ function Stat({ label, value, accent }: { label: string; value: string | number;
 }
 
 export default async function AdminDashboard() {
+  requireOperatorPage();
   const r = await buildDashboardReport();
 
   return (

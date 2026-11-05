@@ -1,3 +1,4 @@
+import { requireOperator } from "@/lib/operatorAccess";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { updateAgent } from "@/lib/adminService";
@@ -6,6 +7,8 @@ export const dynamic = "force-dynamic";
 
 // GET /api/agents/:id
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  const denied = requireOperator(_req);
+  if (denied) return denied;
   const agent = await prisma.agent.findUnique({
     where: { id: params.id },
     include: { user: true, agency: true, _count: { select: { leads: true } } },
@@ -16,6 +19,8 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
 // PUT /api/agents/:id — update agent + backing user fields.
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+  const denied = requireOperator(req);
+  if (denied) return denied;
   const body = await req.json().catch(() => null);
   if (!body) return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   try {

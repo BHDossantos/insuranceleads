@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+import { requireOperator } from "@/lib/operatorAccess";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
@@ -5,6 +7,8 @@ const TASK_TYPES = ["call", "send_quote", "follow_up", "renewal", "missing_info"
 
 // POST /api/leads/:id/tasks  { title, type?, dueAt?, agentId? }
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const denied = requireOperator(req);
+  if (denied) return denied;
   const body = await req.json().catch(() => ({}));
   if (!body.title) return NextResponse.json({ error: "title is required" }, { status: 422 });
   const type = String(body.type ?? "follow_up");

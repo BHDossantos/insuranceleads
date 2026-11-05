@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+import { requireOperator } from "@/lib/operatorAccess";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { routeLead } from "@/lib/routing";
@@ -5,6 +7,8 @@ import { routeLead } from "@/lib/routing";
 // POST /api/leads/:id/assign  { agentId? }
 // With agentId -> manual assignment. Without -> run the routing engine.
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const denied = requireOperator(req);
+  if (denied) return denied;
   const body = await req.json().catch(() => ({}));
   const lead = await prisma.lead.findUnique({ where: { id: params.id } });
   if (!lead) return NextResponse.json({ error: "Lead not found" }, { status: 404 });

@@ -1,4 +1,9 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+// These are pure schema/domain validation tests. Fail if they unexpectedly
+// touch persistence rather than requiring a generated database client.
+vi.mock("./db", () => ({
+  prisma: new Proxy({}, { get() { throw new Error("Validation must not query the database"); } }),
+}));
 import {
   validateAgentDomain,
   agentCreateSchema,

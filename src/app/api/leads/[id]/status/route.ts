@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+import { requireOperator } from "@/lib/operatorAccess";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
@@ -14,6 +16,8 @@ const STAGES = [
 
 // PUT /api/leads/:id/status  { status, notes? }
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+  const denied = requireOperator(req);
+  if (denied) return denied;
   const body = await req.json().catch(() => ({}));
   const status = String(body.status ?? "");
   if (!STAGES.includes(status)) {

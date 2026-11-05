@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+import { requireOperator } from "@/lib/operatorAccess";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
@@ -5,6 +7,8 @@ const TYPES = ["call", "sms", "email", "note", "system"];
 
 // POST /api/leads/:id/activity  { type, notes, agentId? }
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const denied = requireOperator(req);
+  if (denied) return denied;
   const body = await req.json().catch(() => ({}));
   const type = String(body.type ?? "note");
   if (!TYPES.includes(type)) {
