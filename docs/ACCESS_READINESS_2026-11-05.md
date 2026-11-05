@@ -13,7 +13,7 @@ does not rely on middleware or layouts. Protected GETs force dynamic rendering.
 The public intake POST remains public and validates input as before.
 
 The boundary defaults closed with no password or origin configured. A single
-trusted operator can use HTTP Basic via `/api/operator/session`; browser writes
+trusted operator can use HTTP Basic via `/operator`; browser writes
 also require the exact configured origin. Missing configuration returns 503,
 invalid credentials 401, cross-origin writes 403, and denied pages render 404.
 No development bypass exists. Passwords are compared with fixed-size SHA-256
@@ -34,7 +34,7 @@ does not modify any live provider or the unrelated insurance outreach sender.
 
 ## Verification
 
-- Full unit suite: **62 passed / 7 files**, Node 24.19.0.
+- Full unit suite: **64 passed / 7 files**, Node 24.19.0.
 - Tests exercise every current private handler before database access with
   missing/invalid config and forged role/middleware headers; direct SSR page
   functions deny before data access. A configured operator reaches the lead

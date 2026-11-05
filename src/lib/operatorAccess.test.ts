@@ -12,6 +12,19 @@ beforeEach(() => {
 afterEach(() => vi.unstubAllEnvs());
 
 describe("operator boundary", () => {
+  it("challenges at the root-level operator entry", async () => {
+    const { GET } = await import("../app/operator/route");
+    const response = await GET(new Request(`${origin}/operator`));
+    expect(response.status).toBe(401);
+    expect(response.headers.get("www-authenticate")).toContain('realm="Insurance operator"');
+  });
+  it("redirects the authenticated operator only to the configured origin", async () => {
+    const { GET } = await import("../app/operator/route");
+    const response = await GET(new Request("https://forged-host.test/operator", { headers: { authorization } }));
+    expect(response.status).toBe(303);
+    expect(response.headers.get("location")).toBe(`${origin}/admin`);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+  });
   it.each(["", "short"])("fails closed for missing/weak configuration %s", (value) => {
     vi.stubEnv("INSURANCE_OPERATOR_PASSWORD", value);
     expect(operatorAccess(new Headers({ authorization }), "GET")).toBe(503);

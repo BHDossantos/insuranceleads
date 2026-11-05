@@ -22,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link href="/quote" className="hover:text-brand-700">
                 Get a quote
               </Link>
-              <a href="/api/operator/session" className="hover:text-brand-700">
+              <a href="/operator" className="hover:text-brand-700">
                 Operator sign-in
               </a>
             </nav>
