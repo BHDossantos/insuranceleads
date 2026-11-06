@@ -1,3 +1,4 @@
+import { requireOperatorPage } from "@/lib/operatorPage";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { TemperatureBadge, ScoreBadge, StatusBadge, STATUS_LABELS } from "@/components/badges";
@@ -12,6 +13,7 @@ export default async function AgentDashboard({
 }: {
   searchParams: { temperature?: string; status?: string; product?: string };
 }) {
+  requireOperatorPage();
   const where: Record<string, unknown> = {};
   if (searchParams.temperature) where.temperature = searchParams.temperature;
   if (searchParams.status) where.leadStatus = searchParams.status;

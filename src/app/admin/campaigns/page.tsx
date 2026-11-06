@@ -1,3 +1,4 @@
+import { requireOperatorPage } from "@/lib/operatorPage";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import CampaignsManager from "./CampaignsManager";
@@ -5,6 +6,7 @@ import CampaignsManager from "./CampaignsManager";
 export const dynamic = "force-dynamic";
 
 export default async function AdminCampaignsPage() {
+  requireOperatorPage();
   const campaigns = await prisma.campaign.findMany({
     include: { _count: { select: { leads: true } } },
     orderBy: { createdAt: "desc" },

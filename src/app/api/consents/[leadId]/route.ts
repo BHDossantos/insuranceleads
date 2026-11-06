@@ -1,8 +1,12 @@
+export const dynamic = "force-dynamic";
+import { requireOperator } from "@/lib/operatorAccess";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
 // GET /api/consents/:leadId — compliance retrieval of the stored consent record.
 export async function GET(_req: NextRequest, { params }: { params: { leadId: string } }) {
+  const denied = requireOperator(_req);
+  if (denied) return denied;
   const consent = await prisma.consentRecord.findUnique({
     where: { leadId: params.leadId },
   });

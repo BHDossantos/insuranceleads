@@ -73,7 +73,7 @@ When a quote request is submitted (`POST /api/leads` → `src/lib/leadService.ts
   URL, and policy versions are stored per lead in `ConsentRecord`.
 - **Suppression list / opt-outs**: setting a lead to `do_not_contact` adds its
   email + phone to the `Suppression` table, and the inbound SMS webhook
-  (`/api/webhooks/twilio/sms`) honors **STOP/START/HELP** keywords (CAN-SPAM /
+  (`/api/webhooks/twilio/sms`) honors signed **STOP** keywords (START never removes suppression) (CAN-SPAM /
   CTIA STOP handling). Phone numbers are canonicalized to 10 digits everywhere
   so opt-outs reliably match lead records.
 - **Audit trail**: every status change, assignment, and contact attempt is
@@ -103,7 +103,7 @@ When a quote request is submitted (`POST /api/leads` → `src/lib/leadService.ts
 | GET/POST | `/api/campaigns` | List / create campaigns |
 | GET/PUT | `/api/campaigns/:id` | Get / update a campaign |
 | GET | `/api/reports/dashboard` | Aggregated admin metrics |
-| POST | `/api/webhooks/twilio/sms` | Inbound SMS: honor STOP/START/HELP against the suppression list, reply with TwiML |
+| POST | `/api/webhooks/twilio/sms` | Signed inbound SMS: persist STOP; acknowledge other keywords without removing suppression or sending SMS |
 
 ## Data model
 
@@ -119,6 +119,59 @@ products) are CSV strings for cross-database portability.
 3. `npm run db:push && npm run db:seed`.
 
 ## Security notes
+
+### Internal operator boundary (not multi-agent launch authentication)
+
+Private API routes and every admin/agent server-rendered page now check a
+server-side operator credential before reading or mutating data. They fail
+closed with no configured credential; there is no demo bypass. This is a
+**single trusted operator pilot**, whose operator can access all leads. Do not
+give this credential to agents, agencies or customers. Individual identities,
+revocable sessions, assignment/agency-scoped authorization and audited actor
+attribution are still required before a multi-agent rollout.
+
+For an approved internal deployment, configure `INSURANCE_OPERATOR_PASSWORD`
+(at least 32 characters, randomly generated and kept in a secret manager) and
+`INSURANCE_APP_ORIGIN` (exact HTTPS origin, no trailing slash). No credentials
+are created by the app or this change. Unconfigured private APIs return 503;
+invalid authentication returns 401; private pages show 404 without querying
+data. Only non-production loopback origins can use HTTP. Ensure the hosting
+edge redirects HTTP to HTTPS and applies request throttling before enabling
+access. Configuration/deployment must be separately approved.
+
+Use **Operator sign-in** (HTTP Basic username `operator`) to enter the console.
+The password is verified server-side and never put in frontend configuration,
+URLs, logs or the database. Browsers cache HTTP Basic authentication: there is
+no reliable per-tab logout or individual session revocation. Use an isolated
+browser profile and close it after use; rotating the password revokes the old
+credential. This limitation is why the boundary is not a customer identity
+system. API writes require an `Origin` matching `INSURANCE_APP_ORIGIN`, even
+for scripts, to prevent cross-site writes using cached browser credentials.
+
+Checks are inside handlers and server pages, not only middleware/layouts.
+Protected GET routes are dynamic to prevent cached private data. The public
+`POST /api/leads` remains public intake, with existing validation; production
+abuse controls and durable notification delivery remain separate gates.
+
+**Twilio STOP requires verified ingress.** Set the existing primary provider token
+as server-only `TWILIO_AUTH_TOKEN` and the exact public HTTPS callback URL
+(including any query string) as `TWILIO_SMS_WEBHOOK_URL`. Missing/invalid
+configuration returns 503. Only form callbacks with valid Twilio signatures
+are accepted. All fields participate in validation; duplicate fields are rejected.
+No Host or forwarded header is trusted for the signature URL.
+
+Signed STOP variants persist suppression with an idempotent unique-key upsert;
+storage failure returns 503 so it is not falsely acknowledged. START never
+clears global suppression: replayable provider signatures do not establish fresh,
+seller-specific consent. HELP and other messages are acknowledged without an
+outbound reply (empty TwiML); provider-managed replies must be verified separately.
+No event table or migration is needed for this monotonic STOP-only mutation.
+Before enabling a live sender, verify the configured ingress, real database
+suppression, provider retry behavior and sender enforcement of suppression.
+No unrelated outreach sender or live provider setting is modified here.
+
+The isolated review branch is excluded from Vercel Git deployments. Existing
+production deployment settings, credentials and data are unchanged.
 
 - **postcss** is forced to a patched `^8.5.10` via the `overrides` field in
   `package.json` (Next 14 otherwise pins a vulnerable 8.4.x transitively).

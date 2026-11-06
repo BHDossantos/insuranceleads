@@ -1,9 +1,13 @@
+export const dynamic = "force-dynamic";
+import { requireOperator } from "@/lib/operatorAccess";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { createLead, leadInputSchema } from "@/lib/leadService";
 
 // GET /api/leads?status=&temperature=&product=&agentId=&q=
 export async function GET(req: NextRequest) {
+  const denied = requireOperator(req);
+  if (denied) return denied;
   const sp = req.nextUrl.searchParams;
   const where: Record<string, unknown> = {};
   if (sp.get("status")) where.leadStatus = sp.get("status");

@@ -1,9 +1,13 @@
+export const dynamic = "force-dynamic";
+import { requireOperator } from "@/lib/operatorAccess";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
 // POST /api/leads/:id/outcome — upsert quote/bind outcome for ROI tracking.
 // Body: { quotedPremium?, carrier?, policyType?, bound?, estimatedCommission?, lostReason? }
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const denied = requireOperator(req);
+  if (denied) return denied;
   const body = await req.json().catch(() => ({}));
   const lead = await prisma.lead.findUnique({ where: { id: params.id } });
   if (!lead) return NextResponse.json({ error: "Lead not found" }, { status: 404 });

@@ -1,8 +1,12 @@
+export const dynamic = "force-dynamic";
+import { requireOperator } from "@/lib/operatorAccess";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 
 // GET /api/leads/:id — full lead profile with related records.
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  const denied = requireOperator(_req);
+  if (denied) return denied;
   const lead = await prisma.lead.findUnique({
     where: { id: params.id },
     include: {

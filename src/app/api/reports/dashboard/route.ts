@@ -1,3 +1,4 @@
+import { requireOperator } from "@/lib/operatorAccess";
 import { NextResponse } from "next/server";
 import { buildDashboardReport } from "@/lib/reports";
 
@@ -5,7 +6,9 @@ import { buildDashboardReport } from "@/lib/reports";
 export const dynamic = "force-dynamic";
 
 // GET /api/reports/dashboard
-export async function GET() {
+export async function GET(req: Request) {
+  const denied = requireOperator(req);
+  if (denied) return denied;
   const report = await buildDashboardReport();
   return NextResponse.json(report);
 }
