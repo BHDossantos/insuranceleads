@@ -73,7 +73,7 @@ When a quote request is submitted (`POST /api/leads` → `src/lib/leadService.ts
   URL, and policy versions are stored per lead in `ConsentRecord`.
 - **Suppression list / opt-outs**: setting a lead to `do_not_contact` adds its
   email + phone to the `Suppression` table, and the inbound SMS webhook
-  (`/api/webhooks/twilio/sms`) honors **STOP/START/HELP** keywords (CAN-SPAM /
+  (`/api/webhooks/twilio/sms`) honors signed **STOP** keywords (START never removes suppression) (CAN-SPAM /
   CTIA STOP handling). Phone numbers are canonicalized to 10 digits everywhere
   so opt-outs reliably match lead records.
 - **Audit trail**: every status change, assignment, and contact attempt is
@@ -103,7 +103,7 @@ When a quote request is submitted (`POST /api/leads` → `src/lib/leadService.ts
 | GET/POST | `/api/campaigns` | List / create campaigns |
 | GET/PUT | `/api/campaigns/:id` | Get / update a campaign |
 | GET | `/api/reports/dashboard` | Aggregated admin metrics |
-| POST | `/api/webhooks/twilio/sms` | Inbound SMS: honor STOP/START/HELP against the suppression list, reply with TwiML |
+| POST | `/api/webhooks/twilio/sms` | Signed inbound SMS: persist STOP; acknowledge other keywords without removing suppression or sending SMS |
 
 ## Data model
 
@@ -153,13 +153,22 @@ Protected GET routes are dynamic to prevent cached private data. The public
 `POST /api/leads` remains public intake, with existing validation; production
 abuse controls and durable notification delivery remain separate gates.
 
-**The unsigned Twilio SMS endpoint is closed (503).** Previously a forged
-START request could delete suppression. It cannot process STOP/START while
-closed, so do not connect a live sender to it or claim working automated
-opt-out handling. Before enabling SMS, implement provider signature validation
-bound to the canonical webhook URL, durable event deduplication and reviewed
-opt-in handling, then prove STOP is processed reliably. No unrelated outreach
-sender or live provider setting is modified by this code change.
+**Twilio STOP requires verified ingress.** Set the existing primary provider token
+as server-only `TWILIO_AUTH_TOKEN` and the exact public HTTPS callback URL
+(including any query string) as `TWILIO_SMS_WEBHOOK_URL`. Missing/invalid
+configuration returns 503. Only form callbacks with valid Twilio signatures
+are accepted. All fields participate in validation; duplicate fields are rejected.
+No Host or forwarded header is trusted for the signature URL.
+
+Signed STOP variants persist suppression with an idempotent unique-key upsert;
+storage failure returns 503 so it is not falsely acknowledged. START never
+clears global suppression: replayable provider signatures do not establish fresh,
+seller-specific consent. HELP and other messages are acknowledged without an
+outbound reply (empty TwiML); provider-managed replies must be verified separately.
+No event table or migration is needed for this monotonic STOP-only mutation.
+Before enabling a live sender, verify the configured ingress, real database
+suppression, provider retry behavior and sender enforcement of suppression.
+No unrelated outreach sender or live provider setting is modified here.
 
 The isolated review branch is excluded from Vercel Git deployments. Existing
 production deployment settings, credentials and data are unchanged.

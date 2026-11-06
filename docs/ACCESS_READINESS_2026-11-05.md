@@ -27,10 +27,13 @@ identity and authorization before any multi-agent rollout. See README for
 browser credential caching and deployment prerequisites.
 
 The former unsigned SMS webhook could remove suppression on a forged START.
-It now returns 503 without data access. This also prevents STOP processing, so
-no live sender may rely on this endpoint until verified provider ingress,
-deduplication and opt-in/opt-out acceptance are implemented. This code change
-does not modify any live provider or the unrelated insurance outreach sender.
+The November 6 follow-up validates Twilio form signatures against a configured
+canonical HTTPS URL and the existing primary auth token. Signed STOP persists
+an idempotent unique-key suppression upsert; storage failure returns 503. START
+never removes suppression, so replayed consent cannot re-enable messaging.
+Empty TwiML avoids outgoing messages. Missing configuration still returns 503.
+Live ingress, sender suppression enforcement and database acceptance remain
+deployment gates. No provider settings or unrelated sender were changed.
 
 ## Verification
 
@@ -77,8 +80,22 @@ rollback target has yet been verified for this repository.
    and DB acceptance with distinct users and real assignment changes.
 3. Provision secrets/origin only after approval; enforce HTTPS and rate limits
    at the hosting edge. Test password rotation and operator browser entry.
-4. Implement verified SMS webhook and opt-out acceptance before connecting a
+4. Verify signed SMS ingress and live opt-out acceptance before connecting a
    live sender; preserve and reconcile existing suppression records.
 5. Review existing dependency upgrade PRs and production framework advisories,
    public-intake abuse controls, retention/export/deletion and durable lead
    delivery. This access-boundary patch is not a full launch certification.
+
+## Signed STOP follow-up — November 6
+
+Local suite: 88 tests passed across eight files, including Twilio's independent
+published signature vector, signed STOP variants, signature/body/URL tampering,
+proxy URL binding, retries, database errors, bounded input and fail-closed
+configuration. Existing candidate CI previously passed Prisma generation/build;
+this new head needs fresh hosted CI. No live provider message was sent.
+
+Hosting target remains unidentified; no credentials were created or deployed.
+Required metadata: INSURANCE_OPERATOR_PASSWORD, INSURANCE_APP_ORIGIN,
+TWILIO_AUTH_TOKEN and TWILIO_SMS_WEBHOOK_URL. The first two guard private
+operator access; the latter two enable verified STOP ingress. No live readiness
+claim follows from the unit suite alone.
