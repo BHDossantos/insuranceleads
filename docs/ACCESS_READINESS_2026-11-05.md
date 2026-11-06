@@ -55,6 +55,21 @@ SMS or other external message occurred. The isolated review branch is excluded
 from Vercel Git deployments. Draft PR creation is pending explicit approval
 following the parent task's automatic approval-review rejection.
 
+## November 6 release preparation
+
+The user subsequently requested deployment of the fixes. The candidate is
+being prepared for review with CI enabled for pull requests to the repository's
+actual default branch. Production deployment remains held until the target
+host, operator configuration and SMS dependencies are verified. Vercel's
+accessible project inventory did not identify this repository; no service or
+credentials have been created to manufacture a deployment target.
+
+No database migration is introduced. A deployment rollback must not simply
+restore unauthenticated private routes or the unsigned suppression endpoint.
+First restrict public ingress or restore a verified preceding access boundary,
+then recover the known deployment. No production deployment identifier or
+rollback target has yet been verified for this repository.
+
 ## Remaining launch gates
 
 1. Approve an identity product/role model and implement agent/agency isolation.
