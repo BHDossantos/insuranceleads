@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { initialQuoteProduct, reviewDetails, validateQuoteContact } from "@/lib/quoteReview";
 import { PRODUCTS, getProduct, type FormField } from "@/lib/products";
 import {
   DEFAULT_AGENCY_NAME,
@@ -14,12 +15,12 @@ import {
 
 type Details = Record<string, string | boolean>;
 
-const STEP_LABELS = ["Product", "About you", "Details", "Consent"];
+const STEP_LABELS = ["Product", "About you", "Details", "Review", "Consent"];
 
 export default function QuoteForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const initialProduct = params.get("product") ?? "";
+  const initialProduct = initialQuoteProduct(params.get("product"));
 
   const [step, setStep] = useState(initialProduct ? 1 : 0);
   const [product, setProduct] = useState(initialProduct);
@@ -85,11 +86,7 @@ export default function QuoteForm() {
   }
 
   function validateContact(): string | null {
-    if (!contact.firstName.trim() || !contact.lastName.trim()) return "Please enter your name.";
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email)) return "Please enter a valid email.";
-    if (contact.phone.replace(/\D/g, "").length < 10) return "Please enter a valid phone number.";
-    if (!contact.state) return "Please select your state.";
-    return null;
+    return validateQuoteContact(contact);
   }
 
   function validateDetails(): string | null {
@@ -104,6 +101,11 @@ export default function QuoteForm() {
 
   async function submit() {
     setError(null);
+    const validationError = validateContact() || validateDetails();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     if (!consent.tcpa) {
       setError("You must provide consent to be contacted.");
       return;
@@ -157,9 +159,9 @@ export default function QuoteForm() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       {/* Progress */}
-      <div className="flex items-center justify-between">
+      <ol aria-label="Quote request progress" className="grid grid-cols-5 gap-2">
         {STEP_LABELS.map((label, i) => (
-          <div key={label} className="flex flex-1 items-center">
+          <li key={label} aria-current={i === step ? "step" : undefined} className="flex flex-col items-center gap-2 text-center">
             <div
               className={`grid h-8 w-8 place-items-center rounded-full text-xs font-bold ${
                 i <= step ? "bg-brand-600 text-white" : "bg-slate-200 text-slate-500"
@@ -167,14 +169,13 @@ export default function QuoteForm() {
             >
               {i + 1}
             </div>
-            <span className={`ml-2 text-sm ${i <= step ? "text-slate-900" : "text-slate-400"}`}>{label}</span>
-            {i < STEP_LABELS.length - 1 && <div className="mx-2 h-px flex-1 bg-slate-200" />}
-          </div>
+            <span className={`text-xs sm:text-sm ${i <= step ? "text-slate-900" : "text-slate-400"}`}>{label}</span>
+          </li>
         ))}
-      </div>
+      </ol>
 
       {error && (
-        <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-200">{error}</div>
+        <div role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-200">{error}</div>
       )}
 
       {/* Step 0: product */}
@@ -277,8 +278,39 @@ export default function QuoteForm() {
         </div>
       )}
 
-      {/* Step 3: consent */}
-      {step === 3 && (
+      {/* Review stays in memory; no details are submitted until consent. */}
+      {step === 3 && def && (
+        <div className="card space-y-4">
+          <h2 className="text-xl font-bold">Review your request</h2>
+          <p className="text-sm text-slate-600">Check your information before continuing to consent. This is a request for contact, not an insurance quote or coverage confirmation.</p>
+          <div className="flex justify-between gap-3">
+            <div><h3 className="font-semibold">Product</h3><p>{def.label}</p></div>
+            <button className="btn-secondary" onClick={() => setStep(0)}>Edit product</button>
+          </div>
+          <div className="flex justify-between gap-3">
+            <div className="min-w-0 break-words"><h3 className="font-semibold">Contact details</h3>
+              <p>{contact.firstName} {contact.lastName}</p><p>{contact.email}</p><p>{contact.phone}</p>
+              <p>{contact.state} {contact.zip}</p>
+            </div>
+            <button className="btn-secondary self-start" onClick={() => setStep(1)}>Edit contact</button>
+          </div>
+          <div><div className="flex justify-between gap-3"><h3 className="font-semibold">{def.label} details</h3>
+            <button className="btn-secondary" onClick={() => setStep(2)}>Edit details</button></div>
+            <dl className="mt-3 space-y-2">
+              {reviewDetails(def, details).map(({ label, value }) => (
+                <div key={label} className="flex justify-between gap-4 text-sm"><dt>{label}</dt><dd className="break-words text-right">{value}</dd></div>
+              ))}
+            </dl>
+          </div>
+          <div className="flex justify-between">
+            <button className="btn-secondary" onClick={() => setStep(2)}>Back</button>
+            <button className="btn-primary" onClick={() => { setError(null); setStep(4); }}>Continue to consent</button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 4: consent */}
+      {step === 4 && (
         <div className="card space-y-4">
           <h2 className="text-xl font-bold">Consent to be contacted</h2>
           <div className="rounded-lg bg-slate-50 p-4 text-sm text-slate-700 ring-1 ring-slate-200">
@@ -312,7 +344,7 @@ export default function QuoteForm() {
           </fieldset>
 
           <div className="flex justify-between">
-            <button className="btn-secondary" onClick={() => setStep(2)}>Back</button>
+            <button className="btn-secondary" disabled={submitting} onClick={() => setStep(3)}>Back</button>
             <button className="btn-primary" onClick={submit} disabled={submitting}>
               {submitting ? "Submitting…" : "Submit request"}
             </button>
