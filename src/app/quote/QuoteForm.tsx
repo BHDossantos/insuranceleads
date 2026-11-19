@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { validateProductDetails } from "@/lib/validateDetails";
 import { PRODUCTS, getProduct, type FormField } from "@/lib/products";
 import {
   DEFAULT_AGENCY_NAME,
@@ -59,8 +60,8 @@ export default function QuoteForm() {
     if (f.type === "select") {
       return (
         <div key={f.name}>
-          <label className="label">{f.label}{f.required && " *"}</label>
-          <select className="input" value={String(value ?? "")} onChange={(e) => set(e.target.value)}>
+          <label htmlFor={`detail-${f.name}`} className="label">{f.label}{f.required && " *"}</label>
+          <select id={`detail-${f.name}`} className="input" value={String(value ?? "")} onChange={(e) => set(e.target.value)}>
             <option value="">Select…</option>
             {f.options?.map((o) => (
               <option key={o} value={o}>{o}</option>
@@ -71,9 +72,11 @@ export default function QuoteForm() {
     }
     return (
       <div key={f.name}>
-        <label className="label">{f.label}{f.required && " *"}</label>
+        <label htmlFor={`detail-${f.name}`} className="label">{f.label}{f.required && " *"}</label>
         <input
+          id={`detail-${f.name}`}
           className="input"
+          min={f.type === "number" ? 0 : undefined}
           type={f.type === "number" ? "number" : f.type === "date" ? "date" : "text"}
           value={String(value ?? "")}
           placeholder={f.placeholder}
@@ -93,13 +96,7 @@ export default function QuoteForm() {
   }
 
   function validateDetails(): string | null {
-    if (!def) return "Please select a product.";
-    for (const f of def.fields) {
-      if (f.required && !details[f.name] && details[f.name] !== false) {
-        return `Please complete: ${f.label}`;
-      }
-    }
-    return null;
+    return validateProductDetails(def, details);
   }
 
   async function submit() {
@@ -174,7 +171,7 @@ export default function QuoteForm() {
       </div>
 
       {error && (
-        <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-200">{error}</div>
+        <div role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 ring-1 ring-red-200">{error}</div>
       )}
 
       {/* Step 0: product */}
