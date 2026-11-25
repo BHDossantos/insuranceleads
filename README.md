@@ -33,6 +33,8 @@ Then open:
 - `/agent` — agent dashboard (lead inbox sorted by score, pipeline, filters)
 - `/agent/leads/[id]` — lead detail (profile, score breakdown, activity, consent, actions)
 - `/admin` — admin dashboard (totals, by product/source, pipeline, agent performance)
+- `/admin/agents` — manage agents & routing rules (license states, products, capacity, weight)
+- `/admin/campaigns` — manage lead-source campaigns & cost-per-lead
 
 Useful scripts:
 
@@ -95,6 +97,11 @@ When a quote request is submitted (`POST /api/leads` → `src/lib/leadService.ts
 | GET | `/api/leads/export` | CSV export of all leads |
 | GET | `/api/consents/:leadId` | Retrieve stored consent record |
 | GET | `/api/agents` | List agents |
+| POST | `/api/agents` | Create an agent (+ backing user); validates states/products |
+| GET/PUT | `/api/agents/:id` | Get / update an agent (license states, products, capacity, weight, status) |
+| GET | `/api/agencies` | List agencies |
+| GET/POST | `/api/campaigns` | List / create campaigns |
+| GET/PUT | `/api/campaigns/:id` | Get / update a campaign |
 | GET | `/api/reports/dashboard` | Aggregated admin metrics |
 | POST | `/api/webhooks/twilio/sms` | Inbound SMS: honor STOP/START/HELP against the suppression list, reply with TwiML |
 
