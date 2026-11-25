@@ -4,7 +4,13 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+      day: monday
     open-pull-requests-limit: 5
+    # One grouped PR per week for minor/patch bumps instead of a dozen
+    # single-package PRs that sit open for months.
+    groups:
+      npm-minor-patch:
+        update-types: ["minor", "patch"]
     ignore:
       # Staying on the Next 14.x line for this MVP; a Next 16 major upgrade
       # (React 19, App Router/API changes) is a deliberate, separate decision.
@@ -15,3 +21,11 @@ updates:
       # Dependabot cannot update it without conflicting with that override,
       # so exclude it from automated updates.
       - dependency-name: postcss
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    groups:
+      actions:
+        patterns: ["*"]
