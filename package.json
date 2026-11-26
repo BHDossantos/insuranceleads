@@ -12,7 +12,8 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma db push --force-reset && npm run db:seed",
     "setup": "prisma generate && prisma db push && npm run db:seed",
-    "test": "vitest run"
+    "test": "vitest run",
+    "agent": "tsx scripts/business-agent.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
