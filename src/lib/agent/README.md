@@ -6,6 +6,14 @@ This folder is Jennifer's agent core, copied so this app can run the same busine
 - `charter.ts`: this business's agent, with its tasks, guardrails, measures and the daily Claude routine it works alongside.
 - `untrusted.ts`, `redaction.ts`, `claims.ts`: Jennifer's guards. Outside text is wrapped as untrusted data. Secrets are redacted from errors. Claims that something was paid, sent or signed are flagged.
 
-The agent can only propose. Nothing here sends, posts, pays or writes. Every proposal comes back with `needsApproval: true`, and nothing is wired to a page or an API route yet.
+The agent can only propose. Nothing here sends, posts, pays or writes. Every proposal comes back with `needsApproval: true`.
 
-To turn it on, the app needs a server-side AI key and a `ModelProvider` that calls the model. Until then `runBusinessTask` returns `blocked` with "Add an AI key on the server to turn this agent on".
+## Turning it on
+
+This app has no admin sign-in yet, so the agent is not exposed on the web. `provider.ts` wires it to Claude and `scripts/business-agent.ts` runs it from your own computer:
+
+```
+BUSINESS_AGENT_ENABLED=true ANTHROPIC_API_KEY=... npm run agent -- prospects notes.txt
+```
+
+It reads lead counts from the database (never names or contact details), adds the notes file if you give one (treated as untrusted) and prints the proposals. Nothing is stored or sent. Without the flag or the key it prints the reason and stops. `BUSINESS_AGENT_MODEL` overrides the model.
